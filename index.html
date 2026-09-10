@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo D Lírio</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- SDK oficial do Supabase via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <header>
+    <h1>Catálogo D Lírio</h1>
+  </header>
+
+  <main>
+    <div class="main-carousel-wrapper">
+        <button class="catalog-nav-btn catalog-prev" id="catalog-prev">&#10094;</button>
+        
+        <div class="carousel-container" id="carousel">
+          <!-- Os cards serão injetados dinamicamente via JS -->
+        </div>
+        
+        <button class="catalog-nav-btn catalog-next" id="catalog-next">&#10095;</button>
+      </div>
+  </main>
+
+  <!-- MODAL DE DETALHES DO PRODUTO -->
+  <div id="product-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-modal">&times;</span>
+      
+        <div class="modal-body">
+        <!-- Galeria de imagens com carrossel e setas -->
+        <div class="modal-gallery-container">
+          <button class="nav-btn prev-btn" id="prev-btn">&#10094;</button>
+          <div class="modal-gallery" id="modal-gallery">
+            <!-- Imagens injetadas via JS -->
+          </div>
+          <button class="nav-btn next-btn" id="next-btn">&#10095;</button>
+        </div>
+
+        <div class="modal-details">
+          <h2 id="modal-title">Nome do Produto</h2>
+          <p class="price" id="modal-price">R$ 0,00</p>
+          <div class="sizes">
+            <span>Tamanhos disponíveis:</span>
+            <p id="modal-size">P, M, G</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
