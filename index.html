@@ -5,25 +5,329 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo D Lírio</title>
   <link rel="stylesheet" href="style.css">
-  <!-- SDK oficial do Supabase via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* ESTILOS DOS FILTROS E HEADER */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      background-color: #1a1a1a;
+      color: #fff;
+    }
+
+    .cart-header-btn {
+      position: relative;
+      background: #ffffff;
+      color: #1a1a1a;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .cart-header-btn:hover {
+      background: #e0e0e0;
+    }
+
+    .cart-badge {
+      background-color: #e63946;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 7px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .filters-container {
+      text-align: center;
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background-color: #f9f9f9;
+      border-radius: 20px;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .filter-btn:hover {
+      background-color: #e0e0e0;
+    }
+
+    .filter-btn.active {
+      background-color: #25d366; /* Fundo verde vibrante */
+      color: #ffffff;             /* Texto branco para dar contraste */
+      border: 2px solid #25d366;  /* Borda verde */
+      font-weight: bold;
+      box-shadow: 0 0 8px rgba(37, 211, 102, 0.4); /* Brilho/sombra verde suave */
+    }    /* OPÇÕES DE TAMANHO NO MODAL DO PRODUTO */
+    
+    .size-selector {
+      display: flex;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .size-option {
+      padding: 6px 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #fff;
+      font-weight: bold;
+    }
+
+    .size-option.selected {
+      border: 2px solid #25d366; /* Borda verde destacada */
+      background-color: #25d366;  /* Preenchimento verde (mesmo tom do botão) */
+      color: #ffffff;             /* Cor do texto em branco */
+      font-weight: bold;
+      box-shadow: 0 0 6px rgba(37, 211, 102, 0.4); /* Sombra/Brilho verde suave */
+    }
+
+    .add-to-cart-btn {
+      width: 100%;
+      background-color: #25d366;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background 0.2s;
+    }
+
+    .add-to-cart-btn:hover {
+      background-color: #1ebd59;
+    }
+
+    /* ESTILOS DO MODAL DO CARRINHO */
+    .cart-modal {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 100%;
+      max-width: 420px;
+      height: 100%;
+      background-color: #ffffff;
+      color: #1a1a1a;
+      box-shadow: -4px 0 15px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .cart-modal.open {
+      transform: translateX(0);
+    }
+
+    .cart-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: none;
+    }
+
+    .cart-overlay.open {
+      display: block;
+    }
+
+    .cart-header {
+      padding: 20px;
+      background-color: #1a1a1a;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cart-header h2 {
+      margin: 0;
+      color: #ffffff;
+      font-size: 20px;
+    }
+
+    .cart-close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .cart-items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .cart-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 12px;
+    }
+
+    .cart-item-img {
+      width: 65px;
+      height: 65px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    .cart-item-info {
+      flex: 1;
+    }
+
+    .cart-item-title {
+      font-weight: bold;
+      font-size: 14px;
+      margin: 0 0 4px 0;
+      color: #1a1a1a;
+      display: block;
+    }
+
+    .cart-item-details {
+      font-size: 13px;
+      color: #555555;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    /* CONTROLES DE QUANTIDADE (-) [ 1 ] (+) */
+    .cart-item-qty {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .qty-number {
+      font-weight: bold;
+      font-size: 15px;
+      color: #1a1a1a;
+      min-width: 24px;
+      text-align: center;
+      display: inline-block;
+    }
+
+    .qty-btn {
+      background: #e0e0e0;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      transition: background 0.2s;
+    }
+
+    .qty-btn:hover {
+      background: #ccc;
+    }
+
+    .remove-item-btn {
+      background: none;
+      border: none;
+      color: #e63946;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 5px;
+      line-height: 1;
+    }
+
+    .cart-footer {
+      padding: 20px;
+      border-top: 1px solid #eee;
+      background-color: #f9f9f9;
+    }
+
+    .cart-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #1a1a1a;
+    }
+
+    .checkout-btn {
+      width: 100%;
+      background-color: #25d366;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .checkout-btn:hover {
+      background-color: #1ebd59;
+    }
+
+    .empty-cart-msg {
+      text-align: center;
+      color: #777;
+      margin-top: 40px;
+    }
+  </style>
 </head>
 <body>
 
   <header>
     <h1>Catálogo D Lírio</h1>
+    <button class="cart-header-btn" id="open-cart-btn">
+      🛒 Carrinho
+      <span class="cart-badge" id="cart-count">0</span>
+    </button>
   </header>
 
   <main>
+    <!-- BOTÕES DE FILTRO -->
+    <div class="filters-container">
+      <button class="filter-btn active" data-size="Todos">Todos</button>
+      <button class="filter-btn" data-size="G">Tamanho G</button>
+      <button class="filter-btn" data-size="GG">Tamanho GG</button>
+    </div>
+
     <div class="main-carousel-wrapper">
-        <button class="catalog-nav-btn catalog-prev" id="catalog-prev">&#10094;</button>
-        
-        <div class="carousel-container" id="carousel">
-          <!-- Os cards serão injetados dinamicamente via JS -->
-        </div>
-        
-        <button class="catalog-nav-btn catalog-next" id="catalog-next">&#10095;</button>
+      <button class="catalog-nav-btn catalog-prev" id="catalog-prev">&#10094;</button>
+      
+      <div class="carousel-container" id="carousel">
+        <!-- Cards gerados via script local -->
       </div>
+      
+      <button class="catalog-nav-btn catalog-next" id="catalog-next">&#10095;</button>
+    </div>
   </main>
 
   <!-- MODAL DE DETALHES DO PRODUTO -->
@@ -31,12 +335,11 @@
     <div class="modal-content">
       <span class="close-btn" id="close-modal">&times;</span>
       
-        <div class="modal-body">
-        <!-- Galeria de imagens com carrossel e setas -->
+      <div class="modal-body">
         <div class="modal-gallery-container">
           <button class="nav-btn prev-btn" id="prev-btn">&#10094;</button>
           <div class="modal-gallery" id="modal-gallery">
-            <!-- Imagens injetadas via JS -->
+            <!-- Imagens do produto -->
           </div>
           <button class="nav-btn next-btn" id="next-btn">&#10095;</button>
         </div>
@@ -44,15 +347,386 @@
         <div class="modal-details">
           <h2 id="modal-title">Nome do Produto</h2>
           <p class="price" id="modal-price">R$ 0,00</p>
+          
           <div class="sizes">
-            <span>Tamanhos disponíveis:</span>
-            <p id="modal-size">P, M, G</p>
+            <span>Selecione o tamanho:</span>
+            <div id="size-options-container" class="size-selector">
+              <!-- Tamanhos clicáveis serão gerados aqui -->
+            </div>
           </div>
+
+          <button id="add-to-cart-modal-btn" class="add-to-cart-btn">Adicionar ao Carrinho</button>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- OVERLAY E MODAL DO CARRINHO DE COMPRAS -->
+  <div class="cart-overlay" id="cart-overlay"></div>
+
+  <div class="cart-modal" id="cart-modal">
+    <div class="cart-header">
+      <h2>Seu Carrinho</h2>
+      <button class="cart-close-btn" id="close-cart-btn">&times;</button>
+    </div>
+
+    <div class="cart-items" id="cart-items-list">
+      <!-- Itens do carrinho serão inseridos aqui -->
+    </div>
+
+    <div class="cart-footer">
+      <div class="cart-total">
+        <span>Total:</span>
+        <span id="cart-total-price">R$ 0,00</span>
+      </div>
+      <button class="checkout-btn" id="checkout-whatsapp-btn">Finalizar Pedido via WhatsApp</button>
+    </div>
+  </div>
+
+  <script>
+    const PASTA_IMAGENS = "./produtos/";
+    const SEU_NUMERO_WHATSAPP = "5511999999999"; // Coloque seu número do WhatsApp aqui
+
+    const produtos = [
+      { id: "polo-niketriple-verde", nome: "Polo Nike Triple Verde", preco: "60.00", tamanho: "G, GG" },
+      { id: "polo-niketriple-vinho", nome: "Polo Nike Triple Vinho", preco: "60.00", tamanho: "GG" },
+      { id: "polo-tommy-bordada-azul-gg-27reais", nome: "Polo Tommy Bordada Azul", preco: "60.00", tamanho: "GG" },
+      { id: "polo-tommy-bordada-vermelha-gg-27reais", nome: "Polo Tommy Bordada Vermelha", preco: "60.00", tamanho: "GG" },
+      { id: "polo-nike-ciano", nome: "Polo Nike Ciano", preco: "60.00", tamanho: "M, G, GG" },
+      { id: "polo-nike-cinza-p-g-27reais", nome: "Polo Nike Cinza", preco: "60.00", tamanho: "P, G" },
+      { id: "polo-niketriple-azul", nome: "Polo Nike Triple Azul", preco: "60.00", tamanho: "GG" },
+      { id: "polo-niketriple-caqui", nome: "Polo Nike Triple Caqui", preco: "60.00", tamanho: "M, GG" },
+      { id: "polo-niketriple-ciano", nome: "Polo Nike Triple Ciano", preco: "60.00", tamanho: "M, G, GG" },
+      { id: "polo-nike-turquesa", nome: "Polo Nike Turquesa", preco: "60.00", tamanho: "G, GG" },
+      { id: "polo-nike-vermelha", nome: "Polo Nike Vermelha", preco: "60.00", tamanho: "GG" },
+      { id: "polo-lacoste-branco-a", nome: "Polo Lacoste Branco A", preco: "70.00", tamanho: "M, G, GG" },
+      { id: "polo-lacoste-branco-b", nome: "Polo Lacoste Branco B", preco: "70.00", tamanho: "GG" },
+      { id: "polo-lacoste-branco-c", nome: "Polo Lacoste Branco C", preco: "70.00", tamanho: "M, GG" },
+      { id: "polo-lacoste-preto", nome: "Polo Lacoste Preto", preco: "70.00", tamanho: "M, GG" },
+      { id: "polo-lacoste-preto-a", nome: "Polo Lacoste Preto A", preco: "70.00", tamanho: "M" },
+      { id: "polo-lacoste-pretoebranca", nome: "Polo Lacoste Preto e Branco", preco: "60.00", tamanho: "P, M, G" },
+      { id: "polo-lacoste-pretoebranca-a", nome: "Polo Lacoste Preto e Branco A", preco: "70.00", tamanho: "G, GG" },
+      { id: "polo-nike-azul", nome: "Polo Nike Azul", preco: "60.00", tamanho: "P, M, G" },
+      { id: "polo-nike-branco", nome: "Polo Nike Branco", preco: "60.00", tamanho: "M, G, GG" },
+      { id: "polo-nike-caqui", nome: "Polo Nike Caqui", preco: "60.00", tamanho: "P, M, G" },
+      { id: "polo-aramis-caqui", nome: "Polo Aramis Caqui", preco: "60.00", tamanho: "M, G, GG" },
+      { id: "polo-aramis-cinza", nome: "Polo Aramis Cinza", preco: "60.00", tamanho: "M, G, GG" },
+      { id: "polo-aramis-preto", nome: "Polo Aramis Preto", preco: "60.00", tamanho: "G, GG" },
+      { id: "polo-armani-branco", nome: "Polo Armani Branco", preco: "60.00", tamanho: "GG" },
+      { id: "polo-armani-cinza", nome: "Polo Armani Cinza", preco: "60.00", tamanho: "G, GG" },
+      { id: "polo-armani-preto", nome: "Polo Armani Preto", preco: "60.00", tamanho: "G, GG" },
+      { id: "polo-armani-preto-a", nome: "Polo Armani Preto A", preco: "60.00", tamanho: "G, GG" },
+      { id: "polo-armani-preto-b", nome: "Polo Armani Preto B", preco: "60.00", tamanho: "G, GG" },
+      { id: "polo-colcci-branco", nome: "Polo Colcci Branco", preco: "60.00", tamanho: "GG" },
+      { id: "polo-colcci-preto", nome: "Polo Colcci Preto", preco: "60.00", tamanho: "GG" },
+      { id: "polo-diesel-branco", nome: "Polo Diesel Branco", preco: "60.00", tamanho: "GG" }
+    ];
+
+    // CARREGA E SANITIZA O CARRINHO
+    let carrinho = [];
+    try {
+      const carrinhoSalvo = localStorage.getItem('carrinho_dlirio');
+      if (carrinhoSalvo) {
+        carrinho = JSON.parse(carrinhoSalvo);
+        carrinho = carrinho.map(item => ({
+          ...item,
+          quantidade: parseInt(item.quantidade) || 1,
+          preco: parseFloat(item.preco) || 0
+        }));
+      }
+    } catch (e) {
+      carrinho = [];
+    }
+
+    let produtoSelecionadoAtual = null;
+    let tamanhoSelecionadoAtual = null;
+
+    const carousel = document.getElementById("carousel");
+    const modal = document.getElementById("product-modal");
+    const closeModalBtn = document.getElementById("close-modal");
+    const gallery = document.getElementById("modal-gallery");
+    const prevBtn = document.getElementById("prev-btn");
+    const nextBtn = document.getElementById("next-btn");
+
+    function mapearImagens(lista) {
+      return lista.map(prod => ({
+        ...prod,
+        imagens: [
+          `${PASTA_IMAGENS}${prod.id}-1.webp`,
+          `${PASTA_IMAGENS}${prod.id}-2.webp`,
+          `${PASTA_IMAGENS}${prod.id}-3.webp`
+        ]
+      }));
+    }
+
+    // --- LÓGICA DE FILTRAGEM ---
+    function filtrarPorTamanho(tamanhoAlvo) {
+      let produtosFiltrados = produtos;
+
+      if (tamanhoAlvo !== "Todos") {
+        produtosFiltrados = produtos.filter(prod => {
+          const tamanhosDisponiveis = prod.tamanho.split(',').map(t => t.trim());
+          return tamanhosDisponiveis.includes(tamanhoAlvo);
+        });
+      }
+
+      renderCarousel(mapearImagens(produtosFiltrados));
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        filtrarPorTamanho(e.target.getAttribute('data-size'));
+      });
+    });
+
+    // --- RENDERIZAÇÃO DO CARROSSEL ---
+    function renderCarousel(produtosList) {
+      carousel.innerHTML = "";
+
+      if (produtosList.length === 0) {
+        carousel.innerHTML = "<p style='text-align:center; width:100%;'>Nenhum produto encontrado neste tamanho.</p>";
+        return;
+      }
+
+      produtosList.forEach((produto) => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+
+        const foto1 = produto.imagens[0];
+        const foto2 = produto.imagens[1] || foto1;
+
+        card.innerHTML = `
+          <img src="${foto1}" alt="${produto.nome}" class="card-img">
+          <div class="card-info">
+            <h3>${produto.nome}</h3>
+            <p>R$ ${parseFloat(produto.preco).toFixed(2).replace('.', ',')}</p>
+          </div>
+        `;
+
+        const imgElement = card.querySelector(".card-img");
+
+        card.addEventListener("mouseenter", () => { imgElement.src = foto2; });
+        card.addEventListener("mouseleave", () => { imgElement.src = foto1; });
+        card.addEventListener("click", () => openModal(produto));
+
+        carousel.appendChild(card);
+      });
+    }
+
+    // --- MODAL DO PRODUTO ---
+    function openModal(produto) {
+      produtoSelecionadoAtual = produto;
+      document.getElementById("modal-title").innerText = produto.nome;
+      document.getElementById("modal-price").innerText = `R$ ${parseFloat(produto.preco).toFixed(2).replace('.', ',')}`;
+
+      const containerTamanhos = document.getElementById("size-options-container");
+      containerTamanhos.innerHTML = "";
+      
+      const listaTamanhos = produto.tamanho.split(',').map(t => t.trim());
+      tamanhoSelecionadoAtual = listaTamanhos[0];
+
+      listaTamanhos.forEach((tam, index) => {
+        const btn = document.createElement("button");
+        btn.classList.add("size-option");
+        if (index === 0) btn.classList.add("selected");
+        btn.innerText = tam;
+
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".size-option").forEach(b => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          tamanhoSelecionadoAtual = tam;
+        });
+
+        containerTamanhos.appendChild(btn);
+      });
+
+      gallery.innerHTML = "";
+      produto.imagens.forEach((url) => {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = produto.nome;
+        gallery.appendChild(img);
+      });
+
+      modal.classList.remove("hidden");
+      gallery.scrollTo({ left: 0, behavior: "auto" });
+    }
+
+    if (prevBtn && nextBtn) {
+      prevBtn.addEventListener("click", () => gallery.scrollBy({ left: -gallery.clientWidth, behavior: "smooth" }));
+      nextBtn.addEventListener("click", () => gallery.scrollBy({ left: gallery.clientWidth, behavior: "smooth" }));
+    }
+
+    if (closeModalBtn) {
+      closeModalBtn.addEventListener("click", () => modal.classList.add("hidden"));
+    }
+    window.addEventListener("click", (e) => { if (e.target === modal) modal.classList.add("hidden"); });
+
+    const catalogPrevBtn = document.getElementById("catalog-prev");
+    const catalogNextBtn = document.getElementById("catalog-next");
+
+    if (catalogPrevBtn && catalogNextBtn) {
+      catalogPrevBtn.addEventListener("click", () => carousel.scrollBy({ left: -300, behavior: "smooth" }));
+      catalogNextBtn.addEventListener("click", () => carousel.scrollBy({ left: 300, behavior: "smooth" }));
+    }
+
+    // --- GERENCIAMENTO DO CARRINHO ---
+    const cartModal = document.getElementById("cart-modal");
+    const cartOverlay = document.getElementById("cart-overlay");
+    const openCartBtn = document.getElementById("open-cart-btn");
+    const closeCartBtn = document.getElementById("close-cart-btn");
+    const cartCountBadge = document.getElementById("cart-count");
+    const cartItemsList = document.getElementById("cart-items-list");
+    const cartTotalPrice = document.getElementById("cart-total-price");
+    const addToCartModalBtn = document.getElementById("add-to-cart-modal-btn");
+    const checkoutWhatsappBtn = document.getElementById("checkout-whatsapp-btn");
+
+    function salvarCarrinho() {
+      localStorage.setItem('carrinho_dlirio', JSON.stringify(carrinho));
+      atualizarInterfaceCarrinho();
+    }
+
+    // AÇÕES DO CARRINHO DISPONÍVEIS GLOBALMENTE
+    window.alterarQuantidade = function(index, delta) {
+      if (carrinho[index]) {
+        carrinho[index].quantidade += delta;
+        if (carrinho[index].quantidade <= 0) {
+          carrinho.splice(index, 1);
+        }
+        salvarCarrinho();
+      }
+    };
+
+    window.removerItem = function(index) {
+      if (carrinho[index]) {
+        carrinho.splice(index, 1);
+        salvarCarrinho();
+      }
+    };
+
+    function adicionarAoCarrinho(produto, tamanho) {
+      const precoNum = parseFloat(produto.preco) || 0;
+      const itemExistente = carrinho.find(i => i.id === produto.id && i.tamanho === tamanho);
+
+      if (itemExistente) {
+        itemExistente.quantidade += 1;
+      } else {
+        carrinho.push({
+          id: produto.id,
+          nome: produto.nome,
+          preco: precoNum,
+          tamanho: tamanho,
+          imagem: produto.imagens[0],
+          quantidade: 1
+        });
+      }
+
+      salvarCarrinho();
+      modal.classList.add("hidden");
+      abrirCarrinho();
+    }
+
+    function atualizarInterfaceCarrinho() {
+      // 1. Atualiza Contador total no topo
+      const totalItens = carrinho.reduce((sum, item) => sum + (parseInt(item.quantidade) || 0), 0);
+      cartCountBadge.innerText = totalItens;
+
+      // 2. Limpa lista de itens
+      cartItemsList.innerHTML = "";
+
+      if (carrinho.length === 0) {
+        cartItemsList.innerHTML = "<p class='empty-cart-msg'>Seu carrinho está vazio.</p>";
+        cartTotalPrice.innerText = "R$ 0,00";
+        return;
+      }
+
+      let valorTotal = 0;
+
+      // 3. Renderiza cada item com total e eventos
+      carrinho.forEach((item, index) => {
+        const qtd = parseInt(item.quantidade) || 1;
+        const precoUnit = parseFloat(item.preco) || 0;
+        const subtotal = precoUnit * qtd;
+        valorTotal += subtotal;
+
+        const cartItemElem = document.createElement("div");
+        cartItemElem.classList.add("cart-item");
+
+        cartItemElem.innerHTML = `
+          <img src="${item.imagem}" alt="${item.nome || 'Produto'}" class="cart-item-img">
+          <div class="cart-item-info">
+            <span class="cart-item-title">${item.nome || 'Polo D Lírio'}</span>
+            <span class="cart-item-details">Tam: <strong>${item.tamanho}</strong> | R$ ${precoUnit.toFixed(2).replace('.', ',')}</span>
+            <div class="cart-item-qty">
+              <button class="qty-btn btn-minus">-</button>
+              <span class="qty-number">${qtd}</span>
+              <button class="qty-btn btn-plus">+</button>
+            </div>
+          </div>
+          <button class="remove-item-btn">&times;</button>
+        `;
+
+        // Eventos Diretos e Confiáveis
+        cartItemElem.querySelector('.btn-minus').addEventListener('click', () => window.alterarQuantidade(index, -1));
+        cartItemElem.querySelector('.btn-plus').addEventListener('click', () => window.alterarQuantidade(index, 1));
+        cartItemElem.querySelector('.remove-item-btn').addEventListener('click', () => window.removerItem(index));
+
+        cartItemsList.appendChild(cartItemElem);
+      });
+
+      // 4. Atualiza Total Geral
+      cartTotalPrice.innerText = `R$ ${valorTotal.toFixed(2).replace('.', ',')}`;
+    }
+
+    function abrirCarrinho() {
+      cartModal.classList.add("open");
+      cartOverlay.classList.add("open");
+    }
+
+    function fecharCarrinho() {
+      cartModal.classList.remove("open");
+      cartOverlay.classList.remove("open");
+    }
+
+    openCartBtn.addEventListener("click", abrirCarrinho);
+    closeCartBtn.addEventListener("click", fecharCarrinho);
+    cartOverlay.addEventListener("click", fecharCarrinho);
+
+    addToCartModalBtn.addEventListener("click", () => {
+      if (produtoSelecionadoAtual && tamanhoSelecionadoAtual) {
+        adicionarAoCarrinho(produtoSelecionadoAtual, tamanhoSelecionadoAtual);
+      }
+    });
+
+    // --- CHECKOUT VIA WHATSAPP ---
+    checkoutWhatsappBtn.addEventListener("click", () => {
+      if (carrinho.length === 0) {
+        alert("Seu carrinho está vazio!");
+        return;
+      }
+
+      let mensagem = "Olá, gostaria de fazer o seguinte pedido no Catálogo D Lírio:\n\n";
+      let total = 0;
+
+      carrinho.forEach(item => {
+        const qtd = parseInt(item.quantidade) || 1;
+        const preco = parseFloat(item.preco) || 0;
+        const subtotal = preco * qtd;
+        total += subtotal;
+        mensagem += `• *${item.nome}*\n  Tamanho: ${item.tamanho} | Qtd: ${qtd}x | R$ ${subtotal.toFixed(2).replace('.', ',')}\n\n`;
+      });
+
+      mensagem += `*Total do Pedido:* R$ ${total.toFixed(2).replace('.', ',')}`;
+
+      const urlWhatsapp = `https://wa.me/${SEU_NUMERO_WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
+      window.open(urlWhatsapp, '_blank');
+    });
+
+    // Inicialização do Catálogo e do Carrinho
+    filtrarPorTamanho("Todos");
+    atualizarInterfaceCarrinho();
+  </script>
 </body>
 </html>

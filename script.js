@@ -1,147 +1,262 @@
-const SUPABASE_URL = "https://dfummxrgparocndnsahh.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmdW1teHJncGFyb2NuZG5zYWhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NTk1NTAsImV4cCI6MjEwNDUzNTU1MH0.o0kqzSrnVRSzQCliBeHRClOd1rc27LD5KcFOpcWYiMA";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+import { getStorage, ref, listAll, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Configuração do Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyA0Mrnk2Lz-qYbjkKuzl2qR3OR_tfEGVpY",
+  authDomain: "catalogo-dlirio.firebaseapp.com",
+  projectId: "catalogo-dlirio",
+  storageBucket: "catalogo-dlirio.firebasestorage.app",
+  messagingSenderId: "914598403289",
+  appId: "1:914598403289:web:3ad35c5af87f8616e3f2c8",
+  measurementId: "G-RNYQNZBBZV"
+};
 
-const carousel = document.getElementById('carousel');
-const modal = document.getElementById('product-modal');
-const closeModalBtn = document.getElementById('close-modal');
-const gallery = document.getElementById('modal-gallery');
-const prevBtn = document.getElementById('prev-btn');
-const nextBtn = document.getElementById('next-btn');
+// Inicialização do Firebase, Firestore e Storage
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// Seleção de elementos do DOM
+const carousel = document.getElementById("carousel");
+const modal = document.getElementById("product-modal");
+const closeModalBtn = document.getElementById("close-modal");
+const gallery = document.getElementById("modal-gallery");
+const prevBtn = document.getElementById("prev-btn");
+const nextBtn = document.getElementById("next-btn");
+
+/* =========================================================
+   CARREGAR PRODUTOS (FIREBASE)
+   ========================================================= */
 
 async function carregarCatalogo() {
-  // Adicionamos .order('nome', { ascending: true }) para organizar por marca/nome A-Z
-  const { data: produtosBanco, error: errBanco } = await supabaseClient
-    .from('produtos')
-    .select('*')
-    .order('nome', { ascending: true });
+  try {
+    const q = query(collection(db, "produtos"), orderBy("nome", "asc"));
+    const querySnapshot = await getDocs(q);
 
-  if (errBanco) return console.error('Erro no banco:', errBanco);
+    const listaProdutos = [];
 
-  const { data: arquivosStorage, error: errStorage } = await supabaseClient
-    .storage
-    .from('produtos')
-    .list('', { limit: 100 });
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      listaProdutos.push({
+        id: doc.id,
+        nome: data.nome,
+        preco: data.preco
+          ? parseFloat(data.preco).toFixed(2).replace(".", ",")
+          : "0,00",
+        tamanho: data.tamanho || "Consultar",
+        // Pega o array de URLs guardado diretamente no banco
+        imagens: data.imagens || [] 
+      });
+    });
 
-  if (errStorage) return console.error('Erro no Storage:', errStorage);
-
-const listaProdutos = produtosBanco.map(prod => {
-    const fotos = arquivosStorage
-      .filter(arq => {
-        // Remove a extensão (.webp, .jpg) para analisar o nome
-        const nomeSemExtensao = arq.name.replace(/\.[^/.]+$/, "");
-        // Garante que o nome termine exatamente com '-1', '-2', etc. referente ao id_produto
-        return nomeSemExtensao === prod.id_produto || nomeSemExtensao.startsWith(prod.id_produto + '-');
-      })
-      .map(arq => `${SUPABASE_URL}/storage/v1/object/public/produtos/${encodeURIComponent(arq.name)}`)
-      .sort();
-
-    return {
-      id: prod.id_produto,
-      nome: prod.nome,
-      preco: prod.preco ? parseFloat(prod.preco).toFixed(2).replace('.', ',') : '0,00',
-      tamanho: prod.tamanho || 'Consultar',
-      imagens: fotos
-    };
-  });
-  
-  renderCarousel(listaProdutos);
+    renderCarousel(listaProdutos);
+  } catch (error) {
+    console.error("Erro ao carregar catálogo:", error);
+  }
 }
 
+    // 3. Junta as fotos com cada produto (mesma lógica do seu código anterior)
+    const listaProdutos = produtosBanco.map((prod) => {
+      const fotos = arquivosStorage
+        .filter((arq) => {
+          const nomeSemExtensao = arq.name.replace(/\.[^/.]+$/, "");
+          return (
+            nomeSemExtensao === prod.id_produto ||
+            nomeSemExtensao.startsWith(prod.id_produto + "-")
+          );
+        })
+        .map((arq) => arq.url)
+        .sort();
+
+      return {
+        id: prod.id_produto,
+        nome: prod.nome,
+        preco: prod.preco
+          ? parseFloat(prod.preco)
+              .toFixed(2)
+              .replace(".", ",")
+          : "0,00",
+        tamanho: prod.tamanho || "Consultar",
+        imagens: fotos
+      };
+    });
+
+    renderCarousel(listaProdutos);
+  } catch (error) {
+    console.error("Erro ao carregar catálogo:", error);
+  }
+}
+
+/* =========================================================
+   RENDERIZAR CARROSSEL
+   ========================================================= */
+
 function renderCarousel(produtos) {
-  carousel.innerHTML = '';
+  carousel.innerHTML = "";
 
-  produtos.forEach(produto => {
-    if (produto.imagens.length === 0) return;
+  produtos.forEach((produto) => {
+    if (!produto.imagens.length) {
+      return;
+    }
 
-    const card = document.createElement('div');
-    card.classList.add('card');
+    const card = document.createElement("div");
+    card.classList.add("card");
 
     const primeiraFoto = produto.imagens[0];
-    const segundaFoto = produto.imagens[1] || primeiraFoto; // Usa a 2ª foto se existir, senão mantém a 1ª
+    const segundaFoto = produto.imagens[1] || primeiraFoto;
 
     card.innerHTML = `
-      <img src="${primeiraFoto}" alt="${produto.nome}" class="card-img">
+      <img
+        src="${primeiraFoto}"
+        alt="${produto.nome}"
+        class="card-img"
+      >
       <div class="card-info">
         <h3>${produto.nome}</h3>
         <p>R$ ${produto.preco}</p>
       </div>
     `;
 
-    const imgElement = card.querySelector('.card-img');
+    const imgElement = card.querySelector(".card-img");
 
-    // Troca a imagem ao passar o mouse
-    card.addEventListener('mouseenter', () => {
-      imgElement.src = segundaFoto;
+    /* DESKTOP - TROCAR FOTO COM MOUSE */
+    card.addEventListener("mouseenter", () => {
+      if (segundaFoto !== primeiraFoto) {
+        imgElement.src = segundaFoto;
+      }
     });
 
-    // Volta para a primeira foto ao tirar o mouse
-    card.addEventListener('mouseleave', () => {
+    card.addEventListener("mouseleave", () => {
       imgElement.src = primeiraFoto;
     });
 
-    card.addEventListener('click', () => openModal(produto));
+    /* ABRIR MODAL */
+    card.addEventListener("click", () => {
+      openModal(produto);
+    });
+
     carousel.appendChild(card);
   });
 }
 
+/* =========================================================
+   MODAL DO PRODUTO
+   ========================================================= */
 
 function openModal(produto) {
-  document.getElementById('modal-title').innerText = produto.nome;
-  document.getElementById('modal-price').innerText = `R$ ${produto.preco}`;
-  document.getElementById('modal-size').innerText = produto.tamanho;
+  document.getElementById("modal-title").innerText = produto.nome;
+  document.getElementById("modal-price").innerText = `R$ ${produto.preco}`;
+  document.getElementById("modal-size").innerText = produto.tamanho;
 
-  gallery.innerHTML = '';
+  gallery.innerHTML = "";
 
-  produto.imagens.forEach(url => {
-    const img = document.createElement('img');
+  produto.imagens.forEach((url) => {
+    const img = document.createElement("img");
     img.src = url;
+    img.alt = produto.nome;
     gallery.appendChild(img);
   });
 
-  // Oculta as setas se houver apenas 1 imagem
+  /* SETAS DO MODAL */
   if (produto.imagens.length <= 1) {
-    if (prevBtn) prevBtn.style.display = 'none';
-    if (nextBtn) nextBtn.style.display = 'none';
+    if (prevBtn) prevBtn.style.display = "none";
+    if (nextBtn) nextBtn.style.display = "none";
   } else {
-    if (prevBtn) prevBtn.style.display = 'block';
-    if (nextBtn) nextBtn.style.display = 'block';
+    if (prevBtn) prevBtn.style.display = "flex";
+    if (nextBtn) nextBtn.style.display = "flex";
   }
 
-  modal.classList.remove('hidden');
-  gallery.scrollLeft = 0; // Reseta a posição da rolagem
+  modal.classList.remove("hidden");
+
+  /* Volta a galeria para primeira imagem */
+  gallery.scrollTo({
+    left: 0,
+    behavior: "auto"
+  });
 }
 
-// Eventos de clique nas setas
+/* =========================================================
+   SETAS DO MODAL
+   ========================================================= */
+
 if (prevBtn && nextBtn) {
-  prevBtn.addEventListener('click', () => {
-    gallery.scrollBy({ left: -gallery.clientWidth, behavior: 'smooth' });
+  prevBtn.addEventListener("click", () => {
+    const distancia = gallery.clientWidth;
+    gallery.scrollBy({
+      left: -distancia,
+      behavior: "smooth"
+    });
   });
 
-  nextBtn.addEventListener('click', () => {
-    gallery.scrollBy({ left: gallery.clientWidth, behavior: 'smooth' });
+  nextBtn.addEventListener("click", () => {
+    const distancia = gallery.clientWidth;
+    gallery.scrollBy({
+      left: distancia,
+      behavior: "smooth"
+    });
   });
 }
 
-closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
-window.addEventListener('click', (e) => {
-  if (e.target === modal) modal.classList.add('hidden');
+/* =========================================================
+   FECHAR MODAL
+   ========================================================= */
+
+if (closeModalBtn) {
+  closeModalBtn.addEventListener("click", () => {
+    modal.classList.add("hidden");
+  });
+}
+
+window.addEventListener("click", (event) => {
+  if (event.target === modal) {
+    modal.classList.add("hidden");
+  }
 });
+
+/* =========================================================
+   CARREGAR CATÁLOGO
+   ========================================================= */
 
 carregarCatalogo();
 
-// Navegação do catálogo principal via setas
-const catalogCarousel = document.getElementById('carousel');
-const catalogPrevBtn = document.getElementById('catalog-prev');
-const catalogNextBtn = document.getElementById('catalog-next');
+/* =========================================================
+   NAVEGAÇÃO DO CARROSSEL PRINCIPAL
+   ========================================================= */
 
-if (catalogPrevBtn && catalogNextBtn && catalogCarousel) {
-  catalogPrevBtn.addEventListener('click', () => {
-    catalogCarousel.scrollBy({ left: -catalogCarousel.clientWidth, behavior: 'smooth' });
+const catalogPrevBtn = document.getElementById("catalog-prev");
+const catalogNextBtn = document.getElementById("catalog-next");
+
+/* PEGAR O TAMANHO REAL DE UM CARD */
+function obterLarguraDoCard() {
+  const primeiroCard = carousel.querySelector(".card");
+
+  if (!primeiroCard) {
+    return carousel.clientWidth;
+  }
+
+  const estilo = window.getComputedStyle(carousel);
+  const gap = parseFloat(estilo.gap) || 0;
+
+  return primeiroCard.offsetWidth + gap;
+}
+
+/* BOTÃO ANTERIOR E PRÓXIMO */
+if (catalogPrevBtn && catalogNextBtn && carousel) {
+  catalogPrevBtn.addEventListener("click", () => {
+    const distancia = obterLarguraDoCard();
+    carousel.scrollBy({
+      left: -distancia,
+      behavior: "smooth"
+    });
   });
 
-  catalogNextBtn.addEventListener('click', () => {
-    catalogCarousel.scrollBy({ left: catalogCarousel.clientWidth, behavior: 'smooth' });
+  catalogNextBtn.addEventListener("click", () => {
+    const distancia = obterLarguraDoCard();
+    carousel.scrollBy({
+      left: distancia,
+      behavior: "smooth"
+    });
   });
 }
